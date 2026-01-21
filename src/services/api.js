@@ -1,8 +1,11 @@
 import axios from 'axios';
 
 // Create axios instance with default config
+// nginx strips /api prefix, so:
+// - /api/v1/process -> backend /api/v1/process
+// - /api/health -> backend /health
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || '/api/v1',
+  baseURL: '/api/v1',  // This becomes /api/v1 -> backend's /api/v1
   timeout: 300000, // 5 minutes for large document processing
   headers: {
     'Content-Type': 'application/json',
@@ -32,11 +35,14 @@ api.interceptors.response.use(
 // ==========================================
 
 export const getHealth = async () => {
-  const response = await api.get('/health');
+  // Health endpoint is at /health in backend
+  // Frontend calls /api/health -> nginx strips /api -> backend /health
+  const response = await axios.get('/api/health');
   return response.data;
 };
 
 export const getDebugOllama = async () => {
+  // This uses the api instance: /api/v1/debug/ollama -> backend /api/v1/debug/ollama
   const response = await api.get('/debug/ollama');
   return response.data;
 };
