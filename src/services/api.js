@@ -1,12 +1,11 @@
 import axios from 'axios';
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
-// Create axios instance with default config
-// nginx strips /api prefix, so:
-// - /api/v1/process -> backend /api/v1/process
-// - /api/health -> backend /health
+// Backend API base URL - direct connection, no nginx proxy
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://192.168.10.35:8002';
+
+// Create axios instance for /api/v1 endpoints
 const api = axios.create({
-  baseURL: API_BASE_URL,  // This becomes /api/v1 -> backend's /api/v1
+  baseURL: `${API_BASE_URL}/api/v1`,
   timeout: 300000, // 5 minutes for large document processing
   headers: {
     'Content-Type': 'application/json',
@@ -36,14 +35,12 @@ api.interceptors.response.use(
 // ==========================================
 
 export const getHealth = async () => {
-  // Health endpoint is at /health in backend
-  // Frontend calls /api/health -> nginx strips /api -> backend /health
-  const response = await axios.get('/api/health');
+  // Health endpoint is at /health (not under /api/v1)
+  const response = await axios.get(`${API_BASE_URL}/health`);
   return response.data;
 };
 
 export const getDebugOllama = async () => {
-  // This uses the api instance: /api/v1/debug/ollama -> backend /api/v1/debug/ollama
   const response = await api.get('/debug/ollama');
   return response.data;
 };
