@@ -5,7 +5,7 @@ import axios from 'axios';
 // - /api/v1/process -> backend /api/v1/process
 // - /api/health -> backend /health
 const api = axios.create({
-  baseURL: '/api/v1',  // This becomes /api/v1 -> backend's /api/v1
+  baseURL: API_BASE_URL,  // This becomes /api/v1 -> backend's /api/v1
   timeout: 300000, // 5 minutes for large document processing
   headers: {
     'Content-Type': 'application/json',
