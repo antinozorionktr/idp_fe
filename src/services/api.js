@@ -45,6 +45,16 @@ export const getDebugOllama = async () => {
   return response.data;
 };
 
+export const getDebugServices = async () => {
+  const response = await api.get('/debug/services');
+  return response.data;
+};
+
+export const getSystemConfig = async () => {
+  const response = await api.get('/config');
+  return response.data;
+};
+
 // ==========================================
 // Document Processing
 // ==========================================

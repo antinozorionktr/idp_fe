@@ -90,10 +90,10 @@ function QuickActionCard({ title, description, icon: Icon, to, gradient }) {
 function ArchitectureDiagram() {
   const tiers = [
     { 
-      name: 'Vision', 
-      model: 'qwen2.5-vl:7b',
-      icon: Eye,
-      description: 'Document understanding',
+      name: 'OCR', 
+      model: 'Chandra OCR',
+      icon: FileText,
+      description: 'Document extraction (83.1% accuracy)',
       color: 'from-violet-500 to-purple-500',
     },
     { 
@@ -105,7 +105,7 @@ function ArchitectureDiagram() {
     },
     { 
       name: 'Reasoning', 
-      model: 'phi4:14b',
+      model: 'deepseek-r1:32b',
       icon: Brain,
       description: 'QA synthesis',
       color: 'from-emerald-500 to-teal-500',

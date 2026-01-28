@@ -13,6 +13,8 @@ import {
   ExternalLink,
   AlertCircle,
   Loader2,
+  FileSearch,
+  Scan,
 } from 'lucide-react';
 import { useSystemHealth } from '../hooks/useApi';
 import * as api from '../services/api';
@@ -56,7 +58,7 @@ function StatusBadge({ status }) {
   );
 }
 
-function ServiceCard({ title, description, icon: Icon, status, details }) {
+function ServiceCard({ title, description, icon: Icon, status, details, badge }) {
   return (
     <motion.div variants={item} className="glass-card p-5">
       <div className="flex items-start justify-between mb-4">
@@ -75,7 +77,14 @@ function ServiceCard({ title, description, icon: Icon, status, details }) {
             }`} />
           </div>
           <div>
-            <h3 className="font-medium text-dark-200">{title}</h3>
+            <div className="flex items-center gap-2">
+              <h3 className="font-medium text-dark-200">{title}</h3>
+              {badge && (
+                <span className="px-2 py-0.5 text-xs bg-accent-500/20 text-accent-400 rounded-full">
+                  {badge}
+                </span>
+              )}
+            </div>
             <p className="text-sm text-dark-500">{description}</p>
           </div>
         </div>
@@ -99,6 +108,7 @@ function ServiceCard({ title, description, icon: Icon, status, details }) {
 export default function SettingsPage() {
   const { health, loading, refetch } = useSystemHealth();
   const [ollamaDebug, setOllamaDebug] = useState(null);
+  const [systemConfig, setSystemConfig] = useState(null);
   const [loadingDebug, setLoadingDebug] = useState(false);
   
   const fetchOllamaDebug = async () => {
@@ -113,9 +123,23 @@ export default function SettingsPage() {
     }
   };
   
+  const fetchSystemConfig = async () => {
+    try {
+      const data = await api.getSystemConfig();
+      setSystemConfig(data);
+    } catch (err) {
+      console.error('Failed to fetch system config:', err);
+    }
+  };
+  
   useEffect(() => {
     fetchOllamaDebug();
+    fetchSystemConfig();
   }, []);
+  
+  // Determine OCR engine from config
+  const ocrEngine = systemConfig?.ocr?.engine || health?.config?.ocr_engine || 'chandra';
+  const isChandra = ocrEngine.toLowerCase() === 'chandra';
   
   return (
     <motion.div
@@ -136,7 +160,7 @@ export default function SettingsPage() {
         </div>
         
         <button 
-          onClick={() => { refetch(); fetchOllamaDebug(); }} 
+          onClick={() => { refetch(); fetchOllamaDebug(); fetchSystemConfig(); }} 
           className="btn-secondary"
           disabled={loading || loadingDebug}
         >
@@ -193,6 +217,91 @@ export default function SettingsPage() {
         </div>
       </motion.div>
       
+      {/* OCR Engine */}
+      <motion.div variants={item}>
+        <h2 className="font-semibold text-dark-200 mb-4 flex items-center gap-2">
+          <Scan className="w-5 h-5 text-accent-400" />
+          OCR Engine
+        </h2>
+        
+        <div className="glass-card p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isChandra ? 'bg-gradient-to-br from-violet-500 to-purple-500' : 'bg-blue-500/20'}`}>
+                <FileSearch className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-dark-100">
+                    {isChandra ? 'Chandra OCR' : 'PaddleOCR'}
+                  </h3>
+                  {isChandra && (
+                    <span className="px-2 py-0.5 text-xs bg-gradient-to-r from-violet-500/20 to-purple-500/20 text-purple-400 rounded-full border border-purple-500/20">
+                      State-of-the-Art
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-dark-500">
+                  {isChandra 
+                    ? 'Best-in-class accuracy (83.1%) for tables, forms & handwriting' 
+                    : 'Traditional OCR with GPU acceleration'}
+                </p>
+              </div>
+            </div>
+            <StatusBadge status={health?.services?.ocr || 'operational'} />
+          </div>
+          
+          <div className="grid sm:grid-cols-2 gap-4 pt-4 border-t border-dark-700">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-dark-500">Engine</span>
+                <span className="text-dark-300 font-mono text-xs">{ocrEngine}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-dark-500">DPI</span>
+                <span className="text-dark-300 font-mono text-xs">{systemConfig?.ocr?.dpi || 300}</span>
+              </div>
+              {isChandra && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-dark-500">Method</span>
+                  <span className="text-dark-300 font-mono text-xs">{systemConfig?.ocr?.chandra_method || 'hf'}</span>
+                </div>
+              )}
+            </div>
+            <div className="space-y-2">
+              {isChandra && (
+                <>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-dark-500">Model</span>
+                    <span className="text-dark-300 font-mono text-xs">datalab-to/chandra</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-dark-500">Tables</span>
+                    <span className="text-success-400 text-xs">✓ Supported</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-dark-500">Handwriting</span>
+                    <span className="text-success-400 text-xs">✓ Supported</span>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+          
+          {isChandra && (
+            <div className="mt-4 p-3 bg-gradient-to-r from-violet-500/10 to-purple-500/10 rounded-lg border border-purple-500/20">
+              <p className="text-xs text-purple-300">
+                <span className="font-medium">Chandra OCR</span> excels at complex documents including tables with merged cells, 
+                handwritten forms, mathematical equations, and multi-column layouts. 
+                <a href="https://github.com/datalab-to/chandra" target="_blank" rel="noopener noreferrer" className="ml-1 underline hover:text-purple-200">
+                  Learn more →
+                </a>
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.div>
+      
       {/* Model Status */}
       <motion.div variants={item}>
         <h2 className="font-semibold text-dark-200 mb-4 flex items-center gap-2">
@@ -207,7 +316,7 @@ export default function SettingsPage() {
             icon={Eye}
             status={health?.models?.vision}
             details={{
-              model: ollamaDebug?.configured_models?.vision || 'qwen2.5-vl:7b',
+              model: ollamaDebug?.configured_models?.vision || 'qwen2.5vl:7b',
             }}
           />
           <ServiceCard
@@ -225,7 +334,7 @@ export default function SettingsPage() {
             icon={Brain}
             status={health?.models?.reasoning}
             details={{
-              model: ollamaDebug?.configured_models?.reasoning || 'phi4:14b',
+              model: ollamaDebug?.configured_models?.reasoning || 'deepseek-r1:32b',
             }}
           />
         </div>
@@ -243,7 +352,7 @@ export default function SettingsPage() {
             <div className="flex items-center justify-between">
               <span className="text-dark-400">Base URL</span>
               <span className="text-dark-200 font-mono text-sm">
-                {ollamaDebug.ollama_url}
+                {ollamaDebug.ollama_url || ollamaDebug.ollama_base_url}
               </span>
             </div>
             
@@ -308,6 +417,38 @@ export default function SettingsPage() {
                 Qdrant Dashboard
               </p>
               <p className="text-sm text-dark-500">Vector database UI</p>
+            </div>
+            <ExternalLink className="w-5 h-5 text-dark-500 group-hover:text-accent-400" />
+          </a>
+          
+          {isChandra && (
+            <a
+              href="https://github.com/datalab-to/chandra"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="glass-card-hover p-4 flex items-center justify-between group"
+            >
+              <div>
+                <p className="font-medium text-dark-200 group-hover:text-accent-400 transition-colors">
+                  Chandra OCR
+                </p>
+                <p className="text-sm text-dark-500">GitHub Repository</p>
+              </div>
+              <ExternalLink className="w-5 h-5 text-dark-500 group-hover:text-accent-400" />
+            </a>
+          )}
+          
+          <a
+            href="https://www.datalab.to/playground"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="glass-card-hover p-4 flex items-center justify-between group"
+          >
+            <div>
+              <p className="font-medium text-dark-200 group-hover:text-accent-400 transition-colors">
+                Chandra Playground
+              </p>
+              <p className="text-sm text-dark-500">Try OCR online</p>
             </div>
             <ExternalLink className="w-5 h-5 text-dark-500 group-hover:text-accent-400" />
           </a>
